@@ -29,7 +29,7 @@ chown -R www-data:www-data /var/www
 
 apt-get update
 
-apt-get install -q -y build-essential binutils-doc autoconf cmake zlib1g-dev sqlite3 libsqlite3-dev git nginx
+apt-get install -q -y build-essential binutils-doc autoconf cmake zlib1g-dev sqlite3 libsqlite3-dev git postfix nginx
 
 ################################################################################
 # Ruby and Bundler
@@ -57,7 +57,8 @@ thin config \
 --environment "$ENVIRONMENT" \
 --servers 2 \
 --socket /tmp/thin.redmine.sock \
---pid tmp/pids/thin.pid
+--pid tmp/pids/thin.pid \
+--log log/thin.log
 
 # Configure nginx. For now default config is overriden.
 dd of=/etc/nginx/sites-available/default << EOF
@@ -95,6 +96,13 @@ chown -R www-data:www-data "$PATH_TO_REDMINE"
 
 sudo -u www-data -E bash -x "$WORKSPACE/tools/travis/init.sh" -i || exit 1
 
+dd of=$PATH_TO_REDMINE/config/configuration.yml << EOF
+development:
+  email_delivery:
+    delivery_method: :sendmail
+EOF
+chown -R www-data:www-data "$PATH_TO_REDMINE"
+
 ################################################################################
 # Restart services
 ################################################################################
@@ -105,7 +113,6 @@ service thin restart
 # Restart nginx
 service nginx restart
 
-
 cat <<EOF
 ################################################
 # Now you should be able to see Redmine at
@@ -113,5 +120,9 @@ cat <<EOF
 #
 # Username: admin
 # Password: admin
+#
+# Don't forget to configure the emission email
+# adress in Administration - Settings - Email
+# notifications.
 ################################################
 EOF
